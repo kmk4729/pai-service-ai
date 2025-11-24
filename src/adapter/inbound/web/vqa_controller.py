@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from typing import Optional
 
 from application.port.inbound.vqa_use_case import VQAUseCase
@@ -10,14 +11,18 @@ from domain.util.text_utils import extract_keywords_from_text
 from adapter.inbound.web.dependencies import get_vqa_service, get_llm_adapter, get_language_detection_adapter
 
 
+class VQARequestDTO(BaseModel):
+    media_id: Optional[str] = None
+    question: str
+    child_name: Optional[str] = None
+
+
 vqa_router = APIRouter()
 
 
 @vqa_router.post("/", response_class=JSONResponse)
 async def handle_vqa(
-    media_id: Optional[str] = Form(None),
-    question: str = Form(...),
-    child_name: Optional[str] = Form(None),
+    request_dto: VQARequestDTO,
     vqa_service: VQAUseCase = Depends(get_vqa_service),
     llm_port: LLMPort = Depends(get_llm_adapter),
     language_detection_port: LanguageDetectionPort = Depends(get_language_detection_adapter)
@@ -26,12 +31,12 @@ async def handle_vqa(
     이미지(media) 없으면 LLM 직접 질의, 있으면 VQA → LLM 설명 생성
     """
     # Extract keywords from question
-    keywords = extract_keywords_from_text(question)
-    lang = language_detection_port.detect_language(question)
+    keywords = extract_keywords_from_text(request_dto.question)
+    lang = language_detection_port.detect_language(request_dto.question)
 
     # If no media_id, use simple LLM response
-    if not media_id:
-        answer = await llm_port.ask_simple(question, child_name or "아이", lang)
+    if not request_dto.media_id:
+        answer = await llm_port.ask_simple(request_dto.question, request_dto.child_name or "아이", lang)
         return JSONResponse(content={
             "answer": answer,
             "keywords": keywords
@@ -40,9 +45,9 @@ async def handle_vqa(
     # If media_id provided, use VQA service
     try:
         request = VQARequest(
-            image_url=media_id,
-            question=question,
-            child_name=child_name
+            image_url=request_dto.media_id,
+            question=request_dto.question,
+            child_name=request_dto.child_name
         )
         response: VQAResponse = await vqa_service.handle_vqa(request)
 
