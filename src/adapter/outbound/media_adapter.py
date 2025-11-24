@@ -20,12 +20,16 @@ class MediaAdapter(MediaPort):
             print(f"DEBUG: Sending request to {url}")
             print(f"DEBUG: Looking for mediaId={media_id}")
             print(f"DEBUG: Using token from request header (length: {len(token)})")
+            print(f"DEBUG: Authorization header value: {headers['Authorization'][:50]}...")
         else:
             print("WARNING: No token provided for media API request")
+
+        print(f"DEBUG: Full headers being sent: {headers}")
 
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 response = await client.get(url, headers=headers)
+                print(f"DEBUG: Response status code: {response.status_code}")
                 response.raise_for_status()
                 response_data = response.json()
 
