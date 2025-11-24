@@ -63,13 +63,15 @@ def get_vqa_service() -> VQAService:
     language_detection_port = get_language_detection_adapter()
     image_fetch_port = ImageFetchAdapter()
     media_port = MediaAdapter()
+    translation_port = GoogleTranslateAdapter()
     return VQAService(
         llm_port,
         image_analysis_port,
         vqa_model_port,
         language_detection_port,
         image_fetch_port,
-        media_port
+        media_port,
+        translation_port
     )
 
 def get_tts_service() -> TTSService:

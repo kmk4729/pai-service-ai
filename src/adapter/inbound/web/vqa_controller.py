@@ -36,7 +36,15 @@ async def handle_vqa(
 
     # If no media_id, use simple LLM response
     if not request_dto.media_id:
-        answer = await llm_port.ask_simple(request_dto.question, request_dto.child_name or "아이", lang)
+        print(f"DEBUG: No media_id, using simple LLM")
+        print(f"DEBUG: Question language detected: {lang}")
+
+        # Set default child name based on question language
+        default_child_name = "아이" if lang == "ko" else "child"
+        child_name = request_dto.child_name or default_child_name
+        print(f"DEBUG: Using child_name: {child_name}")
+
+        answer = await llm_port.ask_simple(request_dto.question, child_name, lang)
         return JSONResponse(content={
             "answer": answer,
             "keywords": keywords
@@ -44,6 +52,7 @@ async def handle_vqa(
 
     # If media_id provided, use VQA service
     try:
+        # Note: child_name will be set to default based on language in vqa_service if not provided
         request = VQARequest(
             image_url=request_dto.media_id,
             question=request_dto.question,
